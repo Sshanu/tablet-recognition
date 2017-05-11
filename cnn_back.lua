@@ -1,7 +1,21 @@
 optim = require 'optim'
 require 'cunn';
 
-trainset = torch.load('full_back_agu.dat')
+fullset = torch.load('full_back_agu.dat')
+shuffle = torch.randperm(1904)
+shuffleset = fullset
+for i=1, 1904 do
+    shuffleset.data[i] = fullset.data[shuffle[i]]
+    shuffleset.label[i] = fullset.label[shuffle[i]]
+    end
+fullset = shuffleset
+
+trainset = {
+    data = fullset.data[{{1,1904-380}}]:double(),
+    label = fullset.label[{{1,1904-380}}]
+}
+
+
 setmetatable(trainset, 
     {__index = function(t, i) 
                     return {t.data[i], t.label[i]} 
@@ -29,15 +43,17 @@ model:add(nn.Linear(120,80))
 model:add(nn.ReLU())
 model:add(nn.Linear(80,17))
 model:add(nn.LogSoftMax())
-model = torch.load('fullmodel_back.net')
-model = model:float()
--- criterion = nn.ClassNLLCriterion()
--- criterion = criterion:cuda()
--- trainset.data = trainset.data:cuda()
--- trainset.label = trainset.label:cuda()
+-- model = torch.load('fullmodel_back.net')
+-- model = model:float()
+model = model:cuda()
+criterion = nn.ClassNLLCriterion()
+criterion = criterion:cuda()
+trainset.data = trainset.data:cuda()
+trainset.label = trainset.label:cuda()
 
--- trainer = nn.StochasticGradient(model, criterion)
--- trainer.learningRate = 0.0001
--- trainer.maxIteration = 1
--- trainer:train(trainset)
-torch.save('fullmodel_back_cpu.net',model)
+trainer = nn.StochasticGradient(model, criterion)
+trainer.learningRate = 0.0001
+trainer.maxIteration = 500
+trainer:train(trainset)
+model = model:float()
+torch.save('fullmodel_back_cpu1.net',model)
